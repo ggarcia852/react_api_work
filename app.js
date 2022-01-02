@@ -26,12 +26,36 @@ class App extends React.Component {
     try {
       this.setState({ isLoading: true });
       const response = await axios(`https://api.github.com/users/${user}`);
-      const newUsers = [...this.state.users, response.data];
-      this.setState({ users: newUsers, isLoading: false, hasError: false });
+      const data = response.data;
+      const points =
+        response.data.public_repos +
+        response.data.public_gists +
+        response.data.followers;
+      data.score = points;
+
+      const isFound = this.state.users.some((user) => user.id === data.id)
+      if (isFound) {
+        this.setState({ isLoading: false, hasError: false });
+      } else {
+        const newUsers = [...this.state.users, data];
+        this.setState({ users: newUsers, isLoading: false, hasError: false });
+        console.log(this.state.users);
+      }
+      this.getWinner();
     } catch (err) {
       this.setState({ hasError: true, isLoading: false });
       console.error(err);
     }
+  };
+
+  getWinner = () => {
+    const scores = this.state.users
+      .map((user) => user.score)
+      .reduce((acc, val) => {
+        return acc > val ? acc : val;
+      });
+    console.log(scores);
+    // if(this.state.users.map((user) => user.score)
   };
 
   handleChange = (e) => {
