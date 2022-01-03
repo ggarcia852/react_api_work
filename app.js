@@ -48,20 +48,20 @@ class App extends React.Component {
           userMessage: ""
         });
       }
-
       this.getWinner();
     } catch (err) {
       this.setState({ hasError: true, isLoading: false, userMessage: "" });
+      console.log(err);
     }
   };
 
   getWinner = () => {
-    const winningScore = this.state.users
-      .map((user) => user.score)
-      .reduce((acc, val) => {
-        return acc > val ? acc : val;
-      });
-    const winner = this.state.users.find((user) => user.score === winningScore);
+    const winner = this.state.users.reduce((previousVal, currentVal) => {
+      if (previousVal.score < currentVal.score) {
+        previousVal = currentVal;
+      }
+      return previousVal;
+    });
     if (this.state.users.length > 1) {
       this.setState({ winner });
     }
