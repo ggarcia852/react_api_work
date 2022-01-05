@@ -5,7 +5,9 @@ import "./styles.css";
 const User = (props) => (
   <div>
     <div>{props.name}</div>
-    <div className="winner">{props.winner === props.name ? "Winner!" : ""}</div>
+    <div className="winner">
+      {props.users > 1 && props.winner.name === props.name ? "Winner!" : ""}
+    </div>
     <img src={props.img} alt="avatar "></img>
     <div>Public Repos: {props.repos}</div>
     <div>Public Gists: {props.gists}</div>
@@ -18,28 +20,27 @@ class App extends React.Component {
   state = {
     searchTerm: "",
     users: [],
-    winner: null,
     isLoading: false,
     hasError: false,
     userMessage: ""
   };
 
   getUser = async (user) => {
-    try {
-      this.setState({ isLoading: true });
-      const response = await axios(`https://api.github.com/users/${user}`);
-      const data = response.data;
-      const points = data.public_repos + data.public_gists + data.followers;
-      data.score = points;
+    const hasUser = this.state.users.find((element) => element.login === user);
+    if (hasUser) {
+      this.setState({
+        isLoading: false,
+        hasError: false,
+        userMessage: "User Already Added."
+      });
+    } else {
+      try {
+        this.setState({ isLoading: true });
+        const response = await axios(`https://api.github.com/users/${user}`);
+        const data = response.data;
+        const points = data.public_repos + data.public_gists + data.followers;
+        data.score = points;
 
-      const isUser = this.state.users.some((user) => user.id === data.id);
-      if (isUser) {
-        this.setState({
-          isLoading: false,
-          hasError: false,
-          userMessage: "User Already Added."
-        });
-      } else {
         const newUsers = [...this.state.users, data];
         this.setState({
           users: newUsers,
@@ -47,24 +48,20 @@ class App extends React.Component {
           hasError: false,
           userMessage: ""
         });
+      } catch (err) {
+        this.setState({ hasError: true, isLoading: false, userMessage: "" });
       }
-      this.getWinner();
-    } catch (err) {
-      this.setState({ hasError: true, isLoading: false, userMessage: "" });
-      console.log(err);
     }
   };
 
   getWinner = () => {
     const winner = this.state.users.reduce((previousVal, currentVal) => {
-      if (previousVal.score < currentVal.score) {
-        previousVal = currentVal;
+      if (!previousVal || currentVal.score > previousVal.score) {
+        return currentVal;
       }
       return previousVal;
-    });
-    if (this.state.users.length > 1) {
-      this.setState({ winner });
-    }
+    }, null);
+    return winner;
   };
 
   handleChange = (e) => {
@@ -79,6 +76,7 @@ class App extends React.Component {
 
   render() {
     const hasUser = !this.state.isLoading && this.state.users;
+    const winner = this.getWinner();
     return (
       <div className="App">
         <h1>Github Profile Battle</h1>
@@ -91,7 +89,7 @@ class App extends React.Component {
           />
         </form>
         {this.state.hasError && <div className="error">User Not Found</div>}
-        {this.state.isLoading && <div>loading</div>}
+        {this.state.isLoading && <div>loading...</div>}
         {this.state.userMessage && (
           <div className="error">{this.state.userMessage}</div>
         )}
@@ -106,7 +104,8 @@ class App extends React.Component {
                 gists={user.public_gists}
                 followers={user.followers}
                 score={user.public_repos + user.public_gists + user.followers}
-                winner={this.state.winner?.name}
+                winner={winner}
+                users={this.state.users.length}
               />
             ))}
           </div>
